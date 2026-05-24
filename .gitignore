@@ -1,0 +1,24 @@
+# 凭证文件 — 绝对不要提交
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+
+# uv
+.uv/
+
+# 日志 / 数据
+*.log
+logs/
+*.db
+*.sqlite
+
+# IDE
+.vscode/
+.idea/
