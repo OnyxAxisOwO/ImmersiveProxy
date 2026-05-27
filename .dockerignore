@@ -1,0 +1,26 @@
+# 凭证绝不进镜像(运行时由 env_file 注入)
+.env
+.env.*
+!.env.example
+
+# Python / 运行时
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.log
+.server.pid
+
+# 控制台 / 测试 / 文档(不需进镜像)
+control.py
+test_upstream.py
+probe_models.py
+available_models.txt
+handoff.md
+README.md
+
+# git / IDE
+.git/
+.gitignore
+.vscode/
+.idea/

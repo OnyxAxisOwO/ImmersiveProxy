@@ -1,0 +1,17 @@
+services:
+  immersive-proxy:
+    build: .
+    image: immersive-proxy:latest
+    container_name: immersive-proxy
+    # 保活:崩溃 / 宿主机重启自动拉起(手动 down/stop 除外)
+    restart: unless-stopped
+    # 把 .env 注入容器(凭证、模型清单、并发等)
+    env_file:
+      - .env
+    # 覆盖 .env 中的监听设置:容器内必须监听 0.0.0.0:8000
+    environment:
+      HOST: "0.0.0.0"
+      PORT: "8000"
+    # 宿主机端口取 .env 的 PORT(默认 8000)-> 容器 8000
+    ports:
+      - "${PORT:-8000}:8000"
