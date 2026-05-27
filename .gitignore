@@ -13,11 +13,12 @@ venv/
 # uv
 .uv/
 
-# 日志 / 数据
+# 日志 / 数据 / 运行时
 *.log
 logs/
 *.db
 *.sqlite
+.server.pid
 
 # IDE
 .vscode/

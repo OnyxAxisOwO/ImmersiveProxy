@@ -39,6 +39,7 @@ PRODUCT_LINE = os.getenv("X_IMT_PRODUCT_LINE", "ai_writing").strip()
 API_BASE = os.getenv("API_BASE", "https://api2.immersivetranslate.com").strip().rstrip("/")
 OPENAI_PATH = os.getenv("OPENAI_PATH", "/qwen/translate/stream").strip()
 GEMINI_PATH = os.getenv("GEMINI_PATH", "/gemini/translate/stream").strip()
+CLAUDE_PATH = os.getenv("CLAUDE_PATH", "/claude/translate/stream").strip()
 
 HOST = os.getenv("HOST", "127.0.0.1").strip()
 PORT = int(os.getenv("PORT", "8000"))
@@ -62,6 +63,14 @@ MODEL_ALIASES = {
     "grok-4-3": "grok-4-3",
     "deepseek-v4-flash": "DeepSeek-V4-Flash",
     "gemini-3-flash": "gemini-3-flash-preview",
+    "claude-haiku-4.5": "claude-haiku-4.5-20251001",
+    "claude-haiku-4-5": "claude-haiku-4.5-20251001",
+}
+
+# Claude 端点需要的额外请求头
+CLAUDE_HEADERS = {
+    "Anthropic-Version": "2023-06-01",
+    "Anthropic-Dangerous-Direct-Browser-Access": "true",
 }
 # =============================================
 
@@ -106,11 +115,15 @@ def normalize_model(model: str) -> str:
     return MODEL_ALIASES.get(model.lower().strip(), model)
 
 
-def route_for_model(model: str) -> tuple[str, str]:
-    """返回 (上游 URL, 格式 'openai'|'gemini')"""
-    if model.lower().startswith("gemini"):
-        return API_BASE + GEMINI_PATH, "gemini"
-    return API_BASE + OPENAI_PATH, "openai"
+def route_for_model(model: str) -> tuple[str, str, dict]:
+    """返回 (上游 URL, 格式 'openai'|'gemini', 额外请求头)"""
+    m = model.lower()
+    if m.startswith("gemini"):
+        return API_BASE + GEMINI_PATH, "gemini", {}
+    if m.startswith("claude"):
+        # Claude 走专用路径,响应仍是 OpenAI 格式,但需 Anthropic 头
+        return API_BASE + CLAUDE_PATH, "openai", dict(CLAUDE_HEADERS)
+    return API_BASE + OPENAI_PATH, "openai", {}
 
 
 def build_upstream_headers() -> dict:
@@ -163,7 +176,11 @@ def build_upstream_body(body: dict, fmt: str, model: str) -> dict:
     out["model"] = model
     out["stream"] = True
     out.setdefault("temperature", 0)
-    out.setdefault("enable_thinking", False)
+    if model.lower().startswith("claude"):
+        # Anthropic 要求 max_tokens
+        out.setdefault("max_tokens", 2048)
+    else:
+        out.setdefault("enable_thinking", False)
     return out
 
 
@@ -248,11 +265,12 @@ async def chat_completions(request: Request, authorization: Optional[str] = Head
 
     client_model = body.get("model", "qwen3.5-plus")
     model = normalize_model(client_model)
-    url, fmt = route_for_model(model)
+    url, fmt, extra_headers = route_for_model(model)
     client_wants_stream = bool(body.get("stream", True))
     n_messages = len(body.get("messages", []))
 
     headers = build_upstream_headers()
+    headers.update(extra_headers)
     upstream_body = build_upstream_body(body, fmt, model)
     started = time.monotonic()
     logger.info("请求开始 | model=%s | fmt=%s | stream=%s | messages=%d",

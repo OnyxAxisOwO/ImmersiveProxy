@@ -4,9 +4,12 @@
 
 ## 原理
 
-沉浸式翻译 Pro 后端各模型家族有独立端点,其中 `/qwen/translate/stream` 是一个**通用 OpenAI 网关**,绝大多数模型(qwen / deepseek / glm / gpt-5-mini / grok / plamo)直接走它即可,请求与响应都是标准 OpenAI 格式。**唯一例外是 Gemini**:它走 `/gemini/translate/stream`,响应是 Gemini 原生格式,本代理会自动翻译成 OpenAI 格式。
+沉浸式翻译 Pro 后端各模型家族有独立端点,其中 `/qwen/translate/stream` 是一个**通用 OpenAI 网关**,绝大多数模型(qwen / deepseek / glm / gpt-5-mini / grok / plamo)直接走它即可,请求与响应都是标准 OpenAI 格式。两个例外:
 
-本服务本质是个**带认证改写 + Gemini 格式翻译的反向代理**。
+- **Gemini** 走 `/gemini/translate/stream`,响应是 Gemini 原生格式,本代理会自动翻译成 OpenAI 格式。
+- **Claude** 走 `/claude/translate/stream`,响应仍是 OpenAI 格式,但需要额外的 `Anthropic-Version` 等请求头,本代理会自动补上。
+
+本服务本质是个**带认证改写 + 多供应商路由 + Gemini 格式翻译的反向代理**。
 
 ## 功能
 
@@ -31,8 +34,9 @@
 | `grok-4-3`(别名 `grok-4.3`) | Grok 4.3 | OpenAI 透传 |
 | `plamo-2.2-prime` | PLaMo 2.2 Prime | OpenAI 透传 |
 | `gemini-3-flash-preview`(别名 `gemini-3-flash`) | Gemini 3 Flash | Gemini→OpenAI 翻译 |
+| `claude-haiku-4.5-20251001`(别名 `claude-haiku-4.5`) | Claude Haiku 4.5 | `/claude/` + Anthropic 头 |
 
-> 满血 GPT-5 不可用(Pro 套餐返回 429,需 Max 套餐)。Claude Haiku 4.5 / HY 2.0 的正确 model id 尚未确认。
+> 满血 GPT-5 不可用(Pro 套餐返回 429,需 Max 套餐)。HY 2.0 的正确 model id 尚未确认。
 
 ## 安装
 
@@ -90,6 +94,26 @@ python immersive_proxy.py
 
 启动后监听 `http://127.0.0.1:8000`。
 
+## 交互式控制台(推荐)
+
+不想记命令行?用控制台一站式管理:
+
+```powershell
+uv run control.py
+```
+
+支持的指令:
+
+| 指令 | 作用 |
+|---|---|
+| `start` / `stop` / `restart` | 启停 / 重启逆向服务器(后台运行,带健康检查) |
+| `status` | 显示运行状态、地址、凭证是否配置、PID |
+| `model` | 列出当前可用模型(优先取运行中服务的 `/v1/models`) |
+| `settings` | 进入设置:改 token/cookie(脱敏显示)、并发、超时、日志级别、基址与各 Path |
+| `exit` | 退出(可选择是否一并停止服务) |
+
+设置项更改前会先显示当前值;改完若服务在运行会提示 `restart` 生效。
+
 ## 客户端配置示例
 
 通用设置:
@@ -145,6 +169,7 @@ print(resp.choices[0].message.content)
 | 文件 | 作用 |
 |---|---|
 | `immersive_proxy.py` | 主服务 |
+| `control.py` | 交互式控制台:启停服务、查看状态/模型、编辑设置(`uv run control.py`) |
 | `.env` | 凭证与配置(本地,勿提交) |
 | `.env.example` | 配置模板 |
 | `test_upstream.py` | 上游连通性测试:`uv run --with httpx --with python-dotenv test_upstream.py [model]` |
