@@ -2,7 +2,7 @@
 
 把**沉浸式翻译 Pro 会员**的 AI 额度,通过一个本地反向代理暴露成**标准 OpenAI 兼容接口**,即可在 Cherry Studio、NextChat、Open WebUI、各种 IDE 插件等支持自定义 Base URL 的客户端里复用这份额度。
 
-> 此仓库不再更新
+> 此仓库不再更新并维护
 
 ## 原理
 
