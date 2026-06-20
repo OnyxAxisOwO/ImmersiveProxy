@@ -2,6 +2,8 @@
 
 把**沉浸式翻译 Pro 会员**的 AI 额度,通过一个本地反向代理暴露成**标准 OpenAI 兼容接口**,即可在 Cherry Studio、NextChat、Open WebUI、各种 IDE 插件等支持自定义 Base URL 的客户端里复用这份额度。
 
+> 此仓库不再更新
+
 ## 原理
 
 沉浸式翻译 Pro 后端各模型家族有独立端点,其中 `/qwen/translate/stream` 是一个**通用 OpenAI 网关**,绝大多数模型(qwen / deepseek / glm / gpt-5-mini / grok / plamo)直接走它即可,请求与响应都是标准 OpenAI 格式。两个例外:
